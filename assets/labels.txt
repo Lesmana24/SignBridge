@@ -1,0 +1,5 @@
+0 Kosong
+1 Halo
+2 Terimakasih
+3 Maaf
+4 Sama-sama
