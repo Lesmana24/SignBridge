@@ -564,9 +564,39 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_isInit) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: _C.background,
-        body: Center(child: CircularProgressIndicator(color: _C.primary)),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/icons/app_icon.png',
+                height: 120,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 32),
+              const CircularProgressIndicator(color: _C.primary),
+              const SizedBox(height: 24),
+              const Text(
+                'SignBridge',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Loading Application...',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
