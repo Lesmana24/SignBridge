@@ -16,14 +16,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 class _C {
   _C._();
-  static const Color background    = Color(0xFF0A192F); // Deep Navy
+  static const Color background = Color(0xFF0A192F); // Deep Navy
   static const Color surfaceLevel1 = Color(0xFF112240); // Navy Blue (cards)
   static const Color surfaceLevel2 = Color(0xFF1C2F4D); // Overlay
-  static const Color primary       = Color(0xFFFFD700); // Bright Yellow
-  static const Color onPrimary     = Color(0xFF0A192F); // Text on primary
-  static const Color onSurface     = Color(0xFFFFFFFF); // Snow White
-  static const Color onSurfaceDim  = Color(0x99FFFFFF); // 60% white
-  static const Color outline10     = Color(0x1AFFFFFF); // 10% white border
+  static const Color primary = Color(0xFFFFD700); // Bright Yellow
+  static const Color onPrimary = Color(0xFF0A192F); // Text on primary
+  static const Color onSurface = Color(0xFFFFFFFF); // Snow White
+  static const Color onSurfaceDim = Color(0x99FFFFFF); // 60% white
+  static const Color outline10 = Color(0x1AFFFFFF); // 10% white border
 }
 
 class _T {
@@ -31,10 +31,12 @@ class _T {
   static TextStyle _base([double size = 16, FontWeight w = FontWeight.w400]) =>
       GoogleFonts.atkinsonHyperlegibleNext(fontSize: size, fontWeight: w);
 
-  static TextStyle headlineMd  = _base(24, FontWeight.w700);
-  static TextStyle bodyMd      = _base(18, FontWeight.w400);
-  static TextStyle labelLg =
-      _base(16, FontWeight.w700).copyWith(letterSpacing: 0.32);
+  static TextStyle headlineMd = _base(24, FontWeight.w700);
+  static TextStyle bodyMd = _base(18, FontWeight.w400);
+  static TextStyle labelLg = _base(
+    16,
+    FontWeight.w700,
+  ).copyWith(letterSpacing: 0.32);
   static TextStyle translationDisplay = _base(40, FontWeight.w800);
 }
 
@@ -71,11 +73,11 @@ class ImageUtils {
         // 1. Un-mirror horizontally if front camera (AI tensor is mirrored like a webcam)
         int unmirroredX = isFrontCamera ? (targetSize - 1 - x) : x;
         int unmirroredY = y;
-        
+
         // 2. Un-rotate to map back to the sensor's raw orientation
         int sx = unmirroredX;
         int sy = unmirroredY;
-        
+
         if (sensorOrientation == 90) {
           // Sensor was rotated 90 CW. We rotate 90 CCW to map back.
           sx = unmirroredY;
@@ -90,13 +92,21 @@ class ImageUtils {
         }
 
         // 3. Map to center-cropped bounds
-        final int origX = (cropX + (sx * cropSize) / targetSize).floor().clamp(0, width - 1);
-        final int origY = (cropY + (sy * cropSize) / targetSize).floor().clamp(0, height - 1);
+        final int origX = (cropX + (sx * cropSize) / targetSize).floor().clamp(
+          0,
+          width - 1,
+        );
+        final int origY = (cropY + (sy * cropSize) / targetSize).floor().clamp(
+          0,
+          height - 1,
+        );
 
         // 4. Retrieve YUV values using explicit strides for both U and V planes
         final int yIndex = origY * rowStride0 + origX;
-        final int uIndex = (origY ~/ 2) * rowStride1 + (origX ~/ 2) * pixelStride1;
-        final int vIndex = (origY ~/ 2) * rowStride2 + (origX ~/ 2) * pixelStride2;
+        final int uIndex =
+            (origY ~/ 2) * rowStride1 + (origX ~/ 2) * pixelStride1;
+        final int vIndex =
+            (origY ~/ 2) * rowStride2 + (origX ~/ 2) * pixelStride2;
 
         final int yp = plane0[yIndex];
         final int up = plane1[uIndex];
@@ -140,7 +150,7 @@ class ImageUtils {
         final int outX = isFrontCamera ? (targetSize - 1 - x) : x;
         int sx = outX;
         int sy = y;
-        
+
         if (sensorOrientation == 90) {
           sx = y;
           sy = targetSize - 1 - outX;
@@ -152,9 +162,15 @@ class ImageUtils {
           sy = targetSize - 1 - y;
         }
 
-        final int origX = (cropX + (sx * cropSize) / targetSize).floor().clamp(0, width - 1);
-        final int origY = (cropY + (sy * cropSize) / targetSize).floor().clamp(0, height - 1);
-        
+        final int origX = (cropX + (sx * cropSize) / targetSize).floor().clamp(
+          0,
+          width - 1,
+        );
+        final int origY = (cropY + (sy * cropSize) / targetSize).floor().clamp(
+          0,
+          height - 1,
+        );
+
         final int index = origY * rowStride0 + origX * 4;
         final int bPx = plane0[index];
         final int gPx = plane0[index + 1];
@@ -182,7 +198,7 @@ class InferenceWorker {
 
   Future<void> init(Uint8List modelBytes, List<String> labels) async {
     _initCompleter = Completer<void>();
-    
+
     // Zero-copy transfer to prevent 10MB GC allocation on Main Thread
     final transferableModel = TransferableTypedData.fromList([modelBytes]);
 
@@ -215,7 +231,7 @@ class InferenceWorker {
     _sendPort?.send(params);
     return _completer!.future;
   }
-  
+
   void dispose() {
     _isolate?.kill();
     _receivePort.close();
@@ -234,7 +250,7 @@ void _isolateEntry(SendPort mainSendPort) {
       if (message['type'] == 'init') {
         TransferableTypedData transferableModel = message['modelBytes'];
         Uint8List modelBytes = transferableModel.materialize().asUint8List();
-        
+
         labels = message['labels'];
         interpreter = Interpreter.fromBuffer(modelBytes);
         mainSendPort.send({'type': 'ready'});
@@ -257,26 +273,47 @@ void _isolateEntry(SendPort mainSendPort) {
         Float32List inputBytes;
         if (isYUV) {
           inputBytes = ImageUtils.convertYUV420ToFloat32(
-            width, height, plane0, plane1, plane2, 
-            rowStride0, rowStride1, pixelStride1, rowStride2, pixelStride2,
-            sensorOrientation, isFrontCamera
+            width,
+            height,
+            plane0,
+            plane1,
+            plane2,
+            rowStride0,
+            rowStride1,
+            pixelStride1,
+            rowStride2,
+            pixelStride2,
+            sensorOrientation,
+            isFrontCamera,
           );
         } else {
           inputBytes = ImageUtils.convertBGRA8888ToFloat32(
-            width, height, plane0, rowStride0,
-            sensorOrientation, isFrontCamera
+            width,
+            height,
+            plane0,
+            rowStride0,
+            sensorOrientation,
+            isFrontCamera,
           );
         }
 
-        var inputTensor = inputBytes.buffer.asFloat32List().reshape([1, 224, 224, 3]);
-        var outputTensor = List.filled(1 * labels!.length, 0.0).reshape([1, labels!.length]);
+        var inputTensor = inputBytes.buffer.asFloat32List().reshape([
+          1,
+          224,
+          224,
+          3,
+        ]);
+        var outputTensor = List.filled(
+          1 * labels!.length,
+          0.0,
+        ).reshape([1, labels!.length]);
 
         // 3. Run Inference
         interpreter!.run(inputTensor, outputTensor);
 
         // 4. Extract highest confidence dynamically over all classes
         List<double> probabilities = (outputTensor[0] as List).cast<double>();
-        
+
         int highestIdx = 0;
         double highestProb = probabilities[0];
         for (int i = 0; i < probabilities.length; i++) {
@@ -318,13 +355,11 @@ class _MainScreenState extends State<MainScreen> {
   bool _isProcessing = false;
   List<CameraDescription> _cameras = [];
   int _camIndex = 0;
-  
 
-  
   String _translatedText = '—';
   String _rawLabel = 'Kosong';
   double _accuracy = 0.0;
-  
+
   String _lastSpokenWord = '';
 
   // Smoothing / Debouncing Variables
@@ -351,19 +386,25 @@ class _MainScreenState extends State<MainScreen> {
       // 2. Preload Model Bytes and Labels into memory
       final byteData = await rootBundle.load('assets/model_unquant.tflite');
       final modelBytes = byteData.buffer.asUint8List();
-      
+
       String labelsData = await rootBundle.loadString('assets/labels.txt');
-      final labels = labelsData.split('\n').map((e) {
-        int spaceIdx = e.indexOf(' ');
-        return spaceIdx != -1 ? e.substring(spaceIdx + 1).trim() : e.trim();
-      }).where((e) => e.isNotEmpty).toList();
+      final labels = labelsData
+          .split('\n')
+          .map((e) {
+            int spaceIdx = e.indexOf(' ');
+            return spaceIdx != -1 ? e.substring(spaceIdx + 1).trim() : e.trim();
+          })
+          .where((e) => e.isNotEmpty)
+          .toList();
 
       await _worker.init(modelBytes, labels);
 
       // 3. Setup Camera
       _cameras = await availableCameras();
       if (_cameras.isNotEmpty) {
-        _camIndex = _cameras.indexWhere((c) => c.lensDirection == CameraLensDirection.front);
+        _camIndex = _cameras.indexWhere(
+          (c) => c.lensDirection == CameraLensDirection.front,
+        );
         if (_camIndex == -1) _camIndex = 0;
         await _initCamera(_cameras[_camIndex]);
       }
@@ -383,7 +424,7 @@ class _MainScreenState extends State<MainScreen> {
     );
 
     await _camera!.initialize();
-    
+
     // Preview on main thread, inference throttled
     _camera!.startImageStream((CameraImage image) {
       _processCameraFrame(image);
@@ -393,23 +434,28 @@ class _MainScreenState extends State<MainScreen> {
   void _processCameraFrame(CameraImage image) async {
     // 1. Throttling: only perform inference every 300ms
     final now = DateTime.now();
-    if (_isProcessing || now.difference(_lastRunTime).inMilliseconds < _intervalMs) {
-      return; 
+    if (_isProcessing ||
+        now.difference(_lastRunTime).inMilliseconds < _intervalMs) {
+      return;
     }
     _isProcessing = true;
     _lastRunTime = now;
 
     try {
       final isYUV = image.format.group == ImageFormatGroup.yuv420;
-      
+
       // Fast memory copy (memcpy) instead of slow Dart iteration (Uint8List.fromList)
       Uint8List cloneBytes(Uint8List bytes) {
         return Uint8List(bytes.length)..setAll(0, bytes);
       }
-      
+
       final plane0 = cloneBytes(image.planes[0].bytes);
-      final plane1 = image.planes.length > 1 ? cloneBytes(image.planes[1].bytes) : Uint8List(0);
-      final plane2 = image.planes.length > 2 ? cloneBytes(image.planes[2].bytes) : Uint8List(0);
+      final plane1 = image.planes.length > 1
+          ? cloneBytes(image.planes[1].bytes)
+          : Uint8List(0);
+      final plane2 = image.planes.length > 2
+          ? cloneBytes(image.planes[2].bytes)
+          : Uint8List(0);
 
       final Map<String, dynamic> params = {
         'width': image.width,
@@ -420,11 +466,16 @@ class _MainScreenState extends State<MainScreen> {
         'plane2': plane2,
         'rowStride0': image.planes[0].bytesPerRow,
         'rowStride1': image.planes.length > 1 ? image.planes[1].bytesPerRow : 0,
-        'pixelStride1': image.planes.length > 1 ? (image.planes[1].bytesPerPixel ?? 1) : 1,
+        'pixelStride1': image.planes.length > 1
+            ? (image.planes[1].bytesPerPixel ?? 1)
+            : 1,
         'rowStride2': image.planes.length > 2 ? image.planes[2].bytesPerRow : 0,
-        'pixelStride2': image.planes.length > 2 ? (image.planes[2].bytesPerPixel ?? 1) : 1,
+        'pixelStride2': image.planes.length > 2
+            ? (image.planes[2].bytesPerPixel ?? 1)
+            : 1,
         'sensorOrientation': _cameras[_camIndex].sensorOrientation,
-        'isFrontCamera': _cameras[_camIndex].lensDirection == CameraLensDirection.front,
+        'isFrontCamera':
+            _cameras[_camIndex].lensDirection == CameraLensDirection.front,
       };
 
       // 2. Trigger persistent Isolate safely
@@ -435,21 +486,21 @@ class _MainScreenState extends State<MainScreen> {
       String detectedLabel = result['label'];
       double confidence = result['confidence'];
 
-      // 3. Prediction Smoothing (Confidence > 85% & Debouncer)
+      // 3. Prediction Smoothing (Confidence > 75% & Debouncer)
       setState(() {
-        if (confidence > 0.85) {
+        if (confidence > 0.75) {
           if (detectedLabel == _candidateLabel) {
             _consecutiveFrames++;
             if (_consecutiveFrames >= 3) {
               // Word confirmed for 3 frames! Lock it into UI.
               _rawLabel = detectedLabel;
               _accuracy = confidence;
-              
+
               if (detectedLabel.toLowerCase() == 'kosong') {
                 _translatedText = 'Menunggu isyarat...';
               } else {
                 _translatedText = detectedLabel;
-                
+
                 // Smart TTS Debouncer
                 if (_translatedText != _lastSpokenWord) {
                   _lastSpokenWord = _translatedText;
@@ -480,7 +531,7 @@ class _MainScreenState extends State<MainScreen> {
     if (_cameras.length < 2 || _camera == null) return;
     await _camera!.stopImageStream();
     await _camera!.dispose();
-    
+
     _camIndex = (_camIndex + 1) % _cameras.length;
     setState(() => _isInit = false);
     await _initCamera(_cameras[_camIndex]);
@@ -515,9 +566,7 @@ class _MainScreenState extends State<MainScreen> {
     if (!_isInit) {
       return const Scaffold(
         backgroundColor: _C.background,
-        body: Center(
-          child: CircularProgressIndicator(color: _C.primary),
-        ),
+        body: Center(child: CircularProgressIndicator(color: _C.primary)),
       );
     }
 
@@ -526,14 +575,8 @@ class _MainScreenState extends State<MainScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(
-              flex: 70,
-              child: _buildCameraArea(),
-            ),
-            Expanded(
-              flex: 30,
-              child: _buildTranslationArea(),
-            ),
+            Expanded(flex: 70, child: _buildCameraArea()),
+            Expanded(flex: 30, child: _buildTranslationArea()),
           ],
         ),
       ),
@@ -552,12 +595,10 @@ class _MainScreenState extends State<MainScreen> {
                       aspectRatio: 1.0,
                       child: ClipRect(
                         child: Transform.scale(
-                          scale: _camera!.value.aspectRatio > 1.0 
-                              ? _camera!.value.aspectRatio 
+                          scale: _camera!.value.aspectRatio > 1.0
+                              ? _camera!.value.aspectRatio
                               : 1.0 / _camera!.value.aspectRatio,
-                          child: Center(
-                            child: CameraPreview(_camera!),
-                          ),
+                          child: Center(child: CameraPreview(_camera!)),
                         ),
                       ),
                     ),
@@ -565,9 +606,7 @@ class _MainScreenState extends State<MainScreen> {
                 : const SizedBox(),
           ),
         ),
-        Center(
-          child: _buildScanFrame(),
-        ),
+        Center(child: _buildScanFrame()),
         Align(
           alignment: const Alignment(0.0, 0.45),
           child: Container(
@@ -583,10 +622,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
         ),
-        Positioned(
-          top: 0, left: 0, right: 0,
-          child: _buildHeader(),
-        ),
+        Positioned(top: 0, left: 0, right: 0, child: _buildHeader()),
       ],
     );
   }
@@ -662,9 +698,7 @@ class _MainScreenState extends State<MainScreen> {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: _C.background,
-        border: Border(
-          top: BorderSide(color: _C.outline10, width: 1),
-        ),
+        border: Border(top: BorderSide(color: _C.outline10, width: 1)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       child: Column(
@@ -683,10 +717,7 @@ class _MainScreenState extends State<MainScreen> {
               const SizedBox(width: 8),
               Text(
                 isKosong ? 'Menunggu isyarat...' : 'Mendeteksi gerakan...',
-                style: _T.bodyMd.copyWith(
-                  color: _C.onSurfaceDim,
-                  fontSize: 14,
-                ),
+                style: _T.bodyMd.copyWith(color: _C.onSurfaceDim, fontSize: 14),
               ),
               const Spacer(),
               Text(
@@ -807,13 +838,43 @@ class _CornerBracketPainter extends CustomPainter {
     final a = armLength;
     final r = radius;
 
-    canvas.drawPath(Path()..moveTo(0, a)..lineTo(0, r)..quadraticBezierTo(0, 0, r, 0)..lineTo(a, 0), paint);
-    canvas.drawPath(Path()..moveTo(w - a, 0)..lineTo(w - r, 0)..quadraticBezierTo(w, 0, w, r)..lineTo(w, a), paint);
-    canvas.drawPath(Path()..moveTo(0, h - a)..lineTo(0, h - r)..quadraticBezierTo(0, h, r, h)..lineTo(a, h), paint);
-    canvas.drawPath(Path()..moveTo(w - a, h)..lineTo(w - r, h)..quadraticBezierTo(w, h, w, h - r)..lineTo(w, h - a), paint);
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, a)
+        ..lineTo(0, r)
+        ..quadraticBezierTo(0, 0, r, 0)
+        ..lineTo(a, 0),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(w - a, 0)
+        ..lineTo(w - r, 0)
+        ..quadraticBezierTo(w, 0, w, r)
+        ..lineTo(w, a),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, h - a)
+        ..lineTo(0, h - r)
+        ..quadraticBezierTo(0, h, r, h)
+        ..lineTo(a, h),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(w - a, h)
+        ..lineTo(w - r, h)
+        ..quadraticBezierTo(w, h, w, h - r)
+        ..lineTo(w, h - a),
+      paint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant _CornerBracketPainter old) =>
-      old.color != color || old.armLength != armLength || old.strokeWidth != strokeWidth;
+      old.color != color ||
+      old.armLength != armLength ||
+      old.strokeWidth != strokeWidth;
 }
