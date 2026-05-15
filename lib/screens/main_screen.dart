@@ -353,6 +353,7 @@ class _MainScreenState extends State<MainScreen> {
   // ── State Variables ──────────────────────────────────────────────
   bool _isInit = false;
   bool _isProcessing = false;
+  bool _isMuted = false;
   List<CameraDescription> _cameras = [];
   int _camIndex = 0;
 
@@ -504,7 +505,9 @@ class _MainScreenState extends State<MainScreen> {
                 // Smart TTS Debouncer
                 if (_translatedText != _lastSpokenWord) {
                   _lastSpokenWord = _translatedText;
-                  _tts.speak(_translatedText);
+                  if (!_isMuted) {
+                    _tts.speak(_translatedText);
+                  }
                 }
               }
             }
@@ -545,9 +548,12 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  void _onPlayVoice() {
-    if (_translatedText != 'Menunggu isyarat...' && _translatedText != '—') {
-      _tts.speak(_translatedText);
+  void _onToggleVoice() {
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+    if (_isMuted) {
+      _tts.stop();
     }
   }
 
@@ -817,19 +823,24 @@ class _MainScreenState extends State<MainScreen> {
                 child: SizedBox(
                   height: 52,
                   child: ElevatedButton.icon(
-                    onPressed: _onPlayVoice,
+                    onPressed: _onToggleVoice,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _C.primary,
-                      foregroundColor: _C.onPrimary,
+                      backgroundColor: _isMuted ? _C.surfaceLevel2 : _C.primary,
+                      foregroundColor: _isMuted ? _C.onSurface : _C.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       elevation: 0,
                     ),
-                    icon: const Icon(Icons.volume_up_rounded, size: 22),
+                    icon: Icon(
+                      _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                      size: 22,
+                    ),
                     label: Text(
-                      'Putar Suara',
-                      style: _T.labelLg.copyWith(color: _C.onPrimary),
+                      _isMuted ? 'Suara Mati' : 'Suara Aktif',
+                      style: _T.labelLg.copyWith(
+                        color: _isMuted ? _C.onSurface : _C.onPrimary,
+                      ),
                     ),
                   ),
                 ),
